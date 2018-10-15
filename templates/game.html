@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/css/iziToast.min.css"></link>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/js/iziToast.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+    var players = new Set();
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
+    socket.on('connect', function() {
+        console.log('connected.');
+        socket.emit('get_players')
+    });
+    socket.on('error', function(json) {
+      console.log('Error: ' + json)
+      iziToast.error({
+          title: 'Error',
+          message: json['msg']
+      });
+    });
+
+    function addPlayer(player) {
+      console.log(players)
+      if (players.has(player)) return;
+      var p = document.getElementById('players');
+      var c = document.createElement('span');
+      c.appendChild(document.createTextNode(player));
+      p.appendChild(c);
+      p.appendChild(document.createElement('br'));
+      players.add(player);
+    }
+
+    function removePlayer(player) {
+      if (!players.has(player)) return;
+      var p = document.getElementById('players');
+      for (var i = 0; i < p.childNodes.length; ++i) {
+        if (p.childNodes[i].innerHTML === player) {
+          p.removeChild(p.childNodes[i]);
+          players.remove(player);
+          return;
+        }
+      }
+    }
+
+    function leaveGame() {
+      console.log('leaving');
+      socket.emit('leave');
+      window.href = window.location.protocol + '//' + document.domain + ':' + location.port;
+    }
+
+    socket.on('add_player', function(json) {
+      console.log('add_player ' + json);
+      json['player'].forEach(function(player) {
+        addPlayer(player);
+      });
+    });
+    socket.on('del_player', function(json) {
+      console.log('del_player ' + json);
+      var player = json['player'];
+      players.delete(player);
+    });
+</script>
+</head>
+<body>
+<div id="players">
+</div>
+<div id="controls">
+<button onClick="leaveGame()">Leave</button>
+</div>
+</body>
+</html>

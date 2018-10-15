@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/css/iziToast.min.css"></link>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/js/iziToast.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+    var socket = io.connect('//' + document.domain + ':' + location.port);
+    socket.on('connect', function() {
+        console.log('connected.');
+    });
+    socket.on('join', function(json) {
+      console.log('join', json);
+      window.location.href = json['game']
+    });
+    socket.on('error', function(json) {
+      iziToast.error({
+          title: 'Error',
+          message: json['msg']
+      });
+    });
+
+    function join_or_create() {
+      var name = document.getElementById('name').value;
+      var room = document.getElementById('room').value;
+      if (!name) {
+        iziToast.error({
+          title: 'Error',
+          message: 'Name cannot be empty'
+        });
+        return;
+      }
+      if (!room) {
+        iziToast.error({
+          title: 'Error',
+          message: 'Room cannot be empty'
+        });
+        return;
+      }
+      socket.emit('join', {name: name, room: room});
+    }
+</script>
+</head>
+<body>
+<span> Name: <input id="name" type="text" /> </span> <br/>
+<span> Room: <input id="room" type="text" /> </span> <br/>
+<button onClick="join_or_create()">Enter Game</button>
+</body>
+</html>
