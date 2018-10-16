@@ -5,6 +5,9 @@
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/js/iziToast.min.js"></script>
 <script type="text/javascript" charset="utf-8">
+    var me = '';
+    var started = false;
+    var owner = false;
     var players = new Set();
     var socket = io.connect('http://' + document.domain + ':' + location.port);
     socket.on('connect', function() {
@@ -45,27 +48,98 @@
     function leaveGame() {
       console.log('leaving');
       socket.emit('leave');
-      window.href = window.location.protocol + '//' + document.domain + ':' + location.port;
+      window.location.href = window.location.protocol + '//' + document.domain + ':' + location.port;
+    }
+
+    function startGame() {
+      console.log('starting');
+      showStart(false);
+      showEnd(true);
+      socket.emit('start');
+    }
+
+    function startGame() {
+      console.log('starting');
+      showStart(false);
+      showEnd(true);
+      socket.emit('start');
+    }
+
+      function endGame() {
+      console.log('ending');
+      showStart(true);
+      showEnd(false);
+      socket.emit('end');
+    }
+
+    function showStart(show) {
+      document.getElementById('start').style.display = show ? 'block' : 'none';
+    }
+
+    function showEnd(show) {
+      document.getElementById('end').style.display = show ? 'block' : 'none';
     }
 
     socket.on('add_player', function(json) {
       console.log('add_player ' + json);
+      if ('me' in json) me = json['me'];
       json['player'].forEach(function(player) {
         addPlayer(player);
       });
     });
     socket.on('del_player', function(json) {
       console.log('del_player ' + json);
+      removePlayer(json['player']);
+    });
+    socket.on('owner', function(json) {
       var player = json['player'];
-      players.delete(player);
+      console.log('owner ' + me + ' ' + player);
+      if (me === player) {
+        owner = true;
+        showEnd(started);
+        showStart(!started);
+      }
+      var p = document.getElementById('players');
+      for (var i = 0; i < p.childNodes.length; ++i) {
+        if (p.childNodes[i].innerHTML === player) {
+          p.childNodes[i].style.fontWeight = 'bold';
+          return;
+        }
+      }
+    });
+    socket.on('start', function(json) {
+      var e = document.getElementById('game');
+      if (json['victim']) {
+        e.innerHTML = 'You are in a conspiracy! The victim is ' + json['victim'];
+      } else {
+        e.innerHTML = 'Find out if you are in a conspiracy!';
+      }
+      if (owner) {
+        showStart(false);
+        showEnd(true);
+      }
+      started = true;
+    });
+    socket.on('end', function() {
+      var e = document.getElementById('game');
+      e.innerHTML = '';
+      if (owner) {
+        showStart(true);
+        showEnd(false);
+      }
+      started = false;
     });
 </script>
 </head>
 <body>
+<div id="game">
+</div>
 <div id="players">
 </div>
 <div id="controls">
 <button onClick="leaveGame()">Leave</button>
+<button id="start" style="display: none;" onClick="startGame()">Start</button>
+<button id="end" style="display: none;" onClick="endGame()">End</button>
 </div>
 </body>
 </html>

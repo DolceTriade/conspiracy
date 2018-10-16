@@ -1,24 +1,14 @@
 import logging
-from logging.config import dictConfig
-
-import sets
+import random
 import uuid
 
 from flask import Flask, request, session, render_template, url_for
+from flask.logging import default_handler
 from flask_socketio import SocketIO, send, emit, join_room
 from flask_session import Session
 
-dictConfig({
-    'version': 1,
-    'formatters': {'default': {
-        'format': '[%(asctime)s] %(levelname)s %(filename)s:%(lineno)d: %(message)s',
-    }},
-    'root': {
-        'level': 'INFO',
-    }
-})
-
 app = Flask(__name__)
+default_handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s %(filename)s:%(lineno)d: %(message)s'))
 app.secret_key = 'top secret info'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 SESSION_TYPE='filesystem'
@@ -33,8 +23,10 @@ UUIDS = {}
 
 def create_game(owner_uuid, room):
   app.logger.info('Creating room %s with owner %s' % (room, owner_uuid))
-  GAMES[room] = {'owner': owner_uuid, 'players': sets.Set()}
+  GAMES[room] = {'owner': owner_uuid, 'players': set()}
   GAMES[room]['players'].add(owner_uuid)
+  GAMES[room]['started'] = False
+  GAMES[room]['victim'] = None
 
 
 def join_game(sid, player_uuid, name, room):
@@ -55,15 +47,24 @@ def leave_game(game, player_uuid):
   if not game in GAMES:
     return
   GAMES[game]['players'].discard(player_uuid)
+  name = None
+  room = None
   if player_uuid in PLAYERS:
+    name = PLAYERS[player_uuid]['name']
+    room = PLAYERS[player_uuid]['room']
     del PLAYERS[player_uuid]
   if player_uuid in UUIDS:
     del UUIDS[player_uuid]
-  if player_uuid == GAME[game]['owner']:
-    if len(GAME[game]['players']) == 0:
-      del GAME[game]
+  if player_uuid == GAMES[game]['owner']:
+    if len(GAMES[game]['players']) == 0:
+      del GAMES[game]
       return
-    GAME[game]['owner'] = first_player(GAME[game]['players'])
+    owner = first_player(GAMES[game]['players'])
+    GAMES[game]['owner'] = owner
+    if  room:
+      emit('owner', {'player': name}, room=room)
+    if name:
+      emit('del_player', {'player': name})
 
 
 @socketio.on('connect')
@@ -72,6 +73,10 @@ def handle_connect():
   if 'uuid' in session and session['uuid'] in PLAYERS:
     info = PLAYERS[session['uuid']]
     join_game(request.sid, session['uuid'], info['name'], info['room'])
+    p = PLAYERS[session['uuid']]
+    g = GAMES[p['room']]
+    if g['started']:
+      emit('start', {'victim': PLAYERS[g['victim']]['name']})
 
 
 @socketio.on('join')
@@ -84,20 +89,23 @@ def handle_join(json):
   except KeyError:
     emit('error', {'msg': 'Invalid request.'})
     return
-  if not 'uuid' in session:
-    session['uuid'] = uuid.uuid4()
   if 'uuid' in session and session['uuid'] in PLAYERS:
     emit('error', {msg: 'Already in a game!'});
     return
+  if not 'uuid' in session:
+    session['uuid'] = uuid.uuid4()
   if not json['room'] in GAMES:
     create_game(session['uuid'], json['room'])
+  if GAMES[json['room']]['started']:
+    emit('error', {'msg': 'Game already started!'})
+    return
   join_game(request.sid, session['uuid'], json['name'], json['room'])
   app.logger.info('join %s %s' % (str(json), str(session)))
 
 
 @socketio.on('leave')
 def handle_leave():
-  app.logger.info('leave') 
+  app.logger.info('leave ' + str(session))
   if 'uuid' in session and session['uuid'] in PLAYERS:
     leave_game(PLAYERS[session['uuid']]['room'], session['uuid'])
 
@@ -105,19 +113,48 @@ def handle_leave():
 @socketio.on('start')
 def handle_start():
   app.logger.info('start')
-  if request.sid in PLAYERS and PLAYERS[request.sid] in GAMES:
-    if GAMES[PLAYERS[request.sid]]['owner'] != request.sid:
-      return
-    GAMES[PLAYERS[request.sid]]['game'].start()
+  if not 'uuid' in session or not session['uuid'] in PLAYERS:
+    emit('error', {'msg': 'Not in a game!'})
+    return
+  p = PLAYERS[session['uuid']]
+  g = GAMES[p['room']]
+  if g['owner'] != session['uuid']:
+    emit('error', {'msg': 'Not owner!'})
+    return
+  if g['started']:
+    emit('error', {'msg': 'Game already started!'})
+    return
+  conspiracy = random.random() > (1.0/7.0)
+  if conspiracy:
+    victim = random.choice(list(g['players']))
+    victim_name = PLAYERS[victim]['name']
+  else:
+    victim_name = ''
+    victim = None
+  g['victim'] = victim
+  for player in g['players']:
+    emit('start',{'victim': victim_name if player != victim else ''}, room=UUIDS[player])
+  g['started'] = True
+  app.logger.info('Game %s started. Victim=%s', p['room'], victim)
 
 
 @socketio.on('end')
 def handle_end():
   app.logger.info('end')
-  if request.sid in PLAYERS and PLAYERS[request.sid] in GAMES:
-    if GAMES[PLAYERS[request.sid]]['owner'] != request.sid:
-      return
-    GAMES[PLAYERS[request.sid]]['game'].end()
+  if not 'uuid' in session or not session['uuid'] in PLAYERS:
+    emit('error', {'msg': 'Not in a game!'})
+    return
+  p = PLAYERS[session['uuid']]
+  g = GAMES[p['room']]
+  if g['owner'] != session['uuid']:
+    emit('error', {'msg': 'Not owner!'})
+    return
+  if not g['started']:
+    emit('error', {'msg': 'Game not started!'})
+    return
+  g['started'] = False
+  g['victim'] = None
+  emit('end', room=p['room'])
 
 
 @socketio.on('get_players')
@@ -129,7 +166,8 @@ def handle_get_players():
   app.logger.error('get_players wtf')
   p = PLAYERS[session['uuid']]
   app.logger.error('get_players ' + str(list(GAMES[p['room']]['players'])))
-  emit('add_player', {'player': [PLAYERS[x]['name'] for x in GAMES[p['room']]['players']]})
+  emit('add_player', {'player': [PLAYERS[x]['name'] for x in GAMES[p['room']]['players']], 'me': p['name']})
+  emit('owner', {'player': PLAYERS[GAMES[p['room']]['owner']]['name']})
 
 
 @app.route('/game', methods=['GET'])
