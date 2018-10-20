@@ -173,6 +173,30 @@ def handle_get_players():
   emit('owner', {'player': PLAYERS[GAMES[p['room']]['owner']]['name']})
 
 
+@socketio.on('kick')
+def handle_kick(json):
+  app.logger.info('get_players ' + str(session) + ' ' + str(json))
+  if not 'player' in json:
+    emit('error', {'msg': 'Malformed request!'})
+    return
+  if session['uuid'] not in PLAYERS:
+    emit('error', {'msg': 'Not in game!'})
+    return
+  g = GAMES[PLAYERS[session['uuid']]['room']]
+  if g['owner'] != session['uuid']:
+    emit('error', {'msg': 'Not game owner!'})
+    return
+  uuids = list(g['players'])
+  names = [PLAYERS[x]['name'] for x in uuids]
+  name_map = dict(zip(names, uuids))
+  app.logger.info('names ' + str(name_map))
+  if not json['player'] in name_map:
+    emit('error', {'msg': 'Player not in game!'})
+    return
+  emit('kicked', room=UUIDS[name_map[json['player']]])
+  leave_game(PLAYERS[session['uuid']]['room'], name_map[json['player']])
+
+
 @app.route('/game', methods=['GET'])
 def game():
   game = request.args.get('room')

@@ -129,6 +129,10 @@
       }
       started = false;
     });
+    socket.on('kicked', function() {
+      console.log('kicked');
+      leaveGame();
+    });
 </script>
 </head>
 <body>
