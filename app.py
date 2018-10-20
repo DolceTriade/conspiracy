@@ -159,13 +159,12 @@ def handle_end():
 
 @socketio.on('get_players')
 def handle_get_players():
-  app.logger.error('get_players ' + str(session) + ' ' + str(PLAYERS))
+  app.logger.info('get_players ' + str(session) + ' ' + str(PLAYERS))
   if not 'uuid' in session or not session['uuid'] in PLAYERS:
     emit('error', {'msg': 'Not in a game!'})
     return
-  app.logger.error('get_players wtf')
   p = PLAYERS[session['uuid']]
-  app.logger.error('get_players ' + str(list(GAMES[p['room']]['players'])))
+  app.logger.info('get_players ' + str(list(GAMES[p['room']]['players'])))
   emit('add_player', {'player': [PLAYERS[x]['name'] for x in GAMES[p['room']]['players']], 'me': p['name']})
   emit('owner', {'player': PLAYERS[GAMES[p['room']]['owner']]['name']})
 
@@ -173,7 +172,7 @@ def handle_get_players():
 @app.route('/game', methods=['GET'])
 def game():
   game = request.args.get('room')
-  app.logger.error('game ' + str(GAMES))
+  app.logger.info('game ' + str(GAMES))
   if not game in GAMES:
     return 'Game not found', 404
   if not 'uuid' in session:
