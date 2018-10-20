@@ -124,7 +124,7 @@ def handle_start():
   if g['started']:
     emit('error', {'msg': 'Game already started!'})
     return
-  conspiracy = random.random() > (1.0/7.0)
+  conspiracy = random.random() > (1.0/(len(g['players']) + 1))
   if conspiracy:
     victim = random.choice(list(g['players']))
     victim_name = PLAYERS[victim]['name']
