@@ -24,7 +24,6 @@ UUIDS = {}
 def create_game(owner_uuid, room):
   app.logger.info('Creating room %s with owner %s' % (room, owner_uuid))
   GAMES[room] = {'owner': owner_uuid, 'players': set()}
-  GAMES[room]['players'].add(owner_uuid)
   GAMES[room]['started'] = False
   GAMES[room]['victim'] = None
 
@@ -96,8 +95,13 @@ def handle_join(json):
     session['uuid'] = uuid.uuid4()
   if not json['room'] in GAMES:
     create_game(session['uuid'], json['room'])
-  if GAMES[json['room']]['started']:
+  g= GAMES[json['room']]
+  if g['started']:
     emit('error', {'msg': 'Game already started!'})
+    return
+  names = [PLAYERS[x]['name'] for x in g['players']]
+  if json['name'] in names:
+    emit('error', {'msg': 'Name already in use!'})
     return
   join_game(request.sid, session['uuid'], json['name'], json['room'])
   app.logger.info('join %s %s' % (str(json), str(session)))
