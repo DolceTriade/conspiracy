@@ -1,7 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
+<title>Conspiracy!</title>
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/css/iziToast.min.css"></link>
+<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous"></link>
+<link rel="stylesheet" href="https://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css"></link>
+<link rel="stylesheet" href="https://purecss.io/combo/1.18.13?/css/layouts/marketing.css"></link>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/js/iziToast.min.js"></script>
 <script type="text/javascript" charset="utf-8">
@@ -42,8 +47,34 @@
 </script>
 </head>
 <body>
-<span> Name: <input id="name" type="text" /> </span> <br/>
-<span> Room: <input id="room" type="text" /> </span> <br/>
-<button onClick="join_or_create()">Enter Game</button>
+<div class="header">
+    <div class="home-menu pure-menu pure-menu-horizontal pure-menu-fixed">
+        <a class="pure-menu-heading" href="">Conspiracy</a>
+    </div>
+</div>
+<div class="splash-container">
+    <div class="splash">
+        <p class="splash-head">
+            Enter player and game name to get started!
+        </p>
+        <p class="splash-subhead">
+        <form class="pure-form">
+          <fieldset class="pure-group">
+              <input id="name" type="text" class="pure-input-1-2" placeholder="Username">
+              <input id="room" type="text" class="pure-input-1-2" placeholder="Room">
+          </fieldset>
+
+          <fieldset class="pure-group">
+            <a class="pure-button pure-button-primary" onClick="join_or_create()">Enter Game</a>
+          </fieldset>
+        </form>
+        </p>
+        <p>
+        </p>
+    </div>
+</div>
+<div class="footer l-box is-center">
+  View source code at <a href="https://github.com/DolceTriade/conspiracy">Github</a>!
+</div>
 </body>
 </html>
