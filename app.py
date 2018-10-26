@@ -89,7 +89,7 @@ def handle_join(json):
     emit('error', {'msg': 'Invalid request.'})
     return
   if 'uuid' in session and session['uuid'] in PLAYERS:
-    emit('error', {msg: 'Already in a game!'});
+    emit('error', {'msg': 'Already in a game!'});
     return
   if not 'uuid' in session:
     session['uuid'] = uuid.uuid4()
