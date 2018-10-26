@@ -26,6 +26,7 @@ def create_game(owner_uuid, room):
   GAMES[room] = {'owner': owner_uuid, 'players': set()}
   GAMES[room]['started'] = False
   GAMES[room]['victim'] = None
+  GAMES[room]['conspiracy_probability'] = random.random()
 
 
 def join_game(sid, player_uuid, name, room):
@@ -128,7 +129,7 @@ def handle_start():
   if g['started']:
     emit('error', {'msg': 'Game already started!'})
     return
-  conspiracy = random.random() > (1.0/(len(g['players']) + 1))
+  conspiracy = random.random() >= g['conspiracy_probability']
   if conspiracy:
     victim = random.choice(list(g['players']))
     victim_name = PLAYERS[victim]['name']
