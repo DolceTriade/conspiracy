@@ -76,7 +76,8 @@ def handle_connect():
     p = PLAYERS[session['uuid']]
     g = GAMES[p['room']]
     if g['started']:
-      emit('start', {'victim': PLAYERS[g['victim']]['name'] if g['victim'] != session['uuid'] else ''})
+      victim = g['victim']
+      emit('start', {'victim': PLAYERS[victim]['name'] if victim and g['victim'] != session['uuid'] else ''})
 
 
 @socketio.on('join')
