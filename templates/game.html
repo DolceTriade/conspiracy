@@ -2,6 +2,10 @@
 <html>
 <head>
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/css/iziToast.min.css"></link>
+<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous"></link>
+<link rel="stylesheet" href="https://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css"></link>
+<link rel="stylesheet" href="https://purecss.io/combo/1.18.13?/css/layouts/marketing.css"></link>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/izitoast/1.4.0/js/iziToast.min.js"></script>
 <script type="text/javascript" charset="utf-8">
@@ -73,11 +77,21 @@
     }
 
     function showStart(show) {
-      document.getElementById('start').style.display = show ? 'block' : 'none';
+      var e = document.getElementById('start');
+      if (show) {
+        e.removeAttribute('hidden');
+      } else {
+        e.setAttribute('hidden', '');
+      }
     }
 
     function showEnd(show) {
-      document.getElementById('end').style.display = show ? 'block' : 'none';
+      var e = document.getElementById('end');
+      if (show) {
+        e.removeAttribute('hidden');
+      } else {
+        e.setAttribute('hidden', '');
+      }
     }
 
     socket.on('add_player', function(json) {
@@ -136,14 +150,25 @@
 </script>
 </head>
 <body>
-<div id="game">
+<div class="header">
+    <div class="home-menu pure-menu pure-menu-horizontal pure-menu-fixed">
+        <a class="pure-menu-heading" href="">Conspiracy</a>
+    </div>
 </div>
-<div id="players">
-</div>
-<div id="controls">
-<button onClick="leaveGame()">Leave</button>
-<button id="start" style="display: none;" onClick="startGame()">Start</button>
-<button id="end" style="display: none;" onClick="endGame()">End</button>
+<div class="splash-container">
+  <div class="splash">
+    <p class="splash-head" id="game">
+      Waiting for game to start.
+    </p>
+    <legend class="splash-subhead">Players</legend>
+    <p class="splash-subhead" id="players">
+    </p>
+    <div id="controls" role="group">
+      <button class="pure-button pure-button-active" onClick="leaveGame()">Leave</button>
+      <button class="pure-button pure-button-active" id="start" onClick="startGame()" hidden>Start</button>
+      <button class="pure-button pure-button-active" id="end" onClick="endGame()" hidden>End</button>
+    </div>
+  </div>
 </div>
 </body>
 </html>
